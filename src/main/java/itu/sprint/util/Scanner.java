@@ -1,8 +1,8 @@
-package itu.sprint;
+package itu.sprint.util;
 
+import itu.sprint.annotation.WebRoute;
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.net.JarURLConnection;
 import java.net.URISyntaxException;
@@ -10,6 +10,7 @@ import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.lang.reflect.Modifier;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.jar.JarEntry;
@@ -120,4 +121,39 @@ public class Scanner {
             e.printStackTrace();
         }
     }
+    public static void executeWebRoute(String packageName, String requestedUrl) {
+        try {
+            List<Class<?>> classes = findClassesInPackage(packageName);
+            boolean found = false;
+
+            for (Class<?> clazz : classes) {
+                for (Method method : clazz.getDeclaredMethods()) {
+                    WebRoute route = method.getAnnotation(WebRoute.class);
+                    if (route != null && route.url().equals(requestedUrl)) {
+                        found = true;
+                        System.out.println("→ Méthode trouvée : " + clazz.getName() + "." + method.getName());
+                        System.out.println("→ Exécution...");
+                        
+                        if (Modifier.isStatic(method.getModifiers())) {
+                            method.invoke(null);
+                        } else {
+                            Object instance = clazz.getDeclaredConstructor().newInstance();
+                            method.invoke(instance);
+                        }
+                        break;
+                    }
+                }
+                if (found) break;
+            }
+
+            if (!found) {
+                System.out.println("❌ Aucune méthode trouvée pour l'URL : " + requestedUrl);
+            }
+
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'exécution de la route : " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
+

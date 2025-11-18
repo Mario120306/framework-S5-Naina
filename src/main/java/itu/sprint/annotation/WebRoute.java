@@ -1,4 +1,4 @@
-package itu.sprint;
+package itu.sprint.annotation;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -10,3 +10,4 @@ import java.lang.annotation.ElementType;
 public @interface WebRoute {
     String url();
 }
+
