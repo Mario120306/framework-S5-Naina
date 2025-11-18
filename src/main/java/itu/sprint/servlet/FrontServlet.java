@@ -1,4 +1,4 @@
-package itu.sprint;
+package itu.sprint.servlet;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.RequestDispatcher;
@@ -87,3 +87,4 @@ public class FrontServlet extends HttpServlet {
         out.println("</html>");
     }
 }
+
