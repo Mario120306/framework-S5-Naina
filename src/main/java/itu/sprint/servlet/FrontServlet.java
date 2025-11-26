@@ -46,7 +46,7 @@ public class FrontServlet extends HttpServlet {
 
     private void handleDynamic(String url, Map<Class<?>, Method> classMethodMap, HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL
+        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL  blabla
         System.out.println("[Sprint][DEBUG] handleDynamic appelé pour URL : " + url);
         for (Map.Entry<Class<?>, Method> entry : classMethodMap.entrySet()) {
             Class<?> cls = entry.getKey();
