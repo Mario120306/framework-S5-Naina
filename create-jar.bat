@@ -15,6 +15,9 @@ if %ERRORLEVEL% EQU 0 (
     echo.
     echo Le JAR se trouve dans : target\sprint_framework-1.0-SNAPSHOT.jar
     echo.
+    echo Copie automatique du JAR dans ..\sprint_test\lib\
+    copy /Y target\sprint_framework-1.0-SNAPSHOT.jar ..\sprint_test\lib\
+    echo.
     echo Pour l'utiliser dans un autre projet :
     echo   1. Copiez le JAR dans le dossier lib/ de votre projet
     echo   2. Ajoutez-le comme dependance dans votre pom.xml

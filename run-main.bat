@@ -11,13 +11,13 @@ cd /d "%~dp0"
 
 REM 1) Build framework JAR
 echo [1/4] Building framework JAR...
-call mvn -q -f "C:\Users\Mario\Documents\S5\FRAMEWORK\sprint_framework" clean package
+call mvn -q -f "C:\Users\Mario\Documents\S5\FRAMEWORK\TP\framework_mario\sprint_framework" clean package
 if %ERRORLEVEL% neq 0 (
     echo ERREUR: Echec build framework
     exit /b 1
 )
 
-set "FRAMEWORK_JAR=C:\Users\Mario\Documents\S5\FRAMEWORK\sprint_framework\target\sprint_framework-1.0-SNAPSHOT.jar"
+set "FRAMEWORK_JAR=C:\Users\Mario\Documents\S5\FRAMEWORK\TP\framework_mario\sprint_framework\target\sprint_framework-1.0-SNAPSHOT.jar"
 if not exist "%FRAMEWORK_JAR%" (
     echo ERREUR: JAR introuvable: %FRAMEWORK_JAR%
     exit /b 1
