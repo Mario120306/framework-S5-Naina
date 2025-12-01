@@ -1,8 +1,9 @@
 package itu.sprint;
 
 import java.lang.reflect.Method;
-import java.util.Map;
+import java.util.List;
 
+import itu.sprint.util.UrlMapping;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -14,13 +15,13 @@ public class ContextInitializer implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         System.out.println("[Sprint] Scan des contrôleurs...");
 
-    Map<String, Map<Class<?>, Method>> urlMap = ControllerScanner.scanControllers(sce.getServletContext());
-    sce.getServletContext().setAttribute(ControllerScanner.CONTROLLERS_MAP_ATTR, urlMap);
+        List<UrlMapping> mappings = ControllerScanner.scanControllers(sce.getServletContext());
+        sce.getServletContext().setAttribute(ControllerScanner.CONTROLLERS_MAP_ATTR, mappings);
 
-        System.out.println("[Sprint] URLs mappées : " + urlMap.size());
-        urlMap.forEach((url, classMethodMap) -> {
-            classMethodMap.forEach((cls, method) -> {
-                System.out.println("[Sprint]   " + url + " -> " + cls.getSimpleName() + "#" + method.getName());
+        System.out.println("[Sprint] URLs mappées : " + mappings.size());
+        mappings.forEach(mapping -> {
+            mapping.getClassMethodMap().forEach((cls, method) -> {
+                System.out.println("[Sprint]   " + mapping.getPattern().getPattern() + " -> " + cls.getSimpleName() + "#" + method.getName());
             });
         });
     }
