@@ -10,8 +10,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.ArrayList;
 
 import itu.sprint.annotation.MapURL;
+import itu.sprint.util.UrlMapping;
+import itu.sprint.util.UrlPattern;
 import jakarta.servlet.ServletContext;
 
 public final class ControllerScanner {
@@ -27,7 +30,7 @@ public final class ControllerScanner {
     /**
      * Scanne tous les contrôleurs avec leurs méthodes mappées.
      */
-    public static Map<String, Map<Class<?>, Method>> scanControllers() {
+    public static List<UrlMapping> scanControllers() {
         return scanControllers(null);
     }
 
@@ -35,7 +38,7 @@ public final class ControllerScanner {
      * Scans controllers using both the JVM classpath and, when available, the
      * web application's WEB-INF/classes directory provided by the ServletContext.
      */
-    public static Map<String, Map<Class<?>, Method>> scanControllers(ServletContext servletContext) {
+    public static List<UrlMapping> scanControllers(ServletContext servletContext) {
         Set<Class<?>> candidates = findAnnotatedClasses();
 
         // If we're running inside a servlet container, try to scan WEB-INF/classes
@@ -52,7 +55,7 @@ public final class ControllerScanner {
                 // Ignore, fall back to classpath-only scanning
             }
         }
-        Map<String, Map<Class<?>, Method>> urlMap = new HashMap<>();
+        List<UrlMapping> mappings = new ArrayList<>();
 
         for (Class<?> cls : candidates) {
             List<Method> mapped = extractMappedMethods(cls);
@@ -67,13 +70,25 @@ public final class ControllerScanner {
                     url = "/" + url;
                 }
 
-                Map<Class<?>, Method> perClass = urlMap.computeIfAbsent(url, k -> new HashMap<>());
+                UrlPattern pattern = new UrlPattern(url);
+                UrlMapping mapping = findOrCreateMapping(mappings, pattern);
                 // En cas de duplication classe->méthode sur la même URL, on écrase l'ancien (convention simple)
-                perClass.put(cls, m);
+                mapping.addMethod(cls, m);
             }
         }
 
-        return urlMap;
+        return mappings;
+    }
+
+    private static UrlMapping findOrCreateMapping(List<UrlMapping> mappings, UrlPattern pattern) {
+        for (UrlMapping mapping : mappings) {
+            if (mapping.getPattern().getPattern().equals(pattern.getPattern())) {
+                return mapping;
+            }
+        }
+        UrlMapping newMapping = new UrlMapping(pattern);
+        mappings.add(newMapping);
+        return newMapping;
     }
 
     /**
