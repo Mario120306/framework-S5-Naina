@@ -209,9 +209,6 @@ public class FrontServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Délègue au servlet par défaut pour les ressources statiques.
-     */
     private void forwardToDefaultServlet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         RequestDispatcher defaultServlet = getServletContext().getNamedDispatcher(DEFAULT_SERVLET_NAME);
 
