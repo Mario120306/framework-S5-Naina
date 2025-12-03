@@ -11,6 +11,7 @@ import java.util.Map;
 
 import itu.sprint.ControllerScanner;
 import itu.sprint.annotation.PathVariable;
+import itu.sprint.annotation.RequestParam;
 import itu.sprint.util.UrlMapping;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -125,6 +126,15 @@ public class FrontServlet extends HttpServlet {
                 PathVariable pv = param.getAnnotation(PathVariable.class);
                 String paramName = pv.value().isEmpty() ? param.getName() : pv.value();
                 String value = pathParams.get(paramName);
+                if (value != null) {
+                    args[i] = convertValue(value, pt);
+                } else {
+                    args[i] = null;
+                }
+            } else if (param.isAnnotationPresent(RequestParam.class)) {
+                RequestParam rp = param.getAnnotation(RequestParam.class);
+                String paramName = rp.value();
+                String value = req.getParameter(paramName);
                 if (value != null) {
                     args[i] = convertValue(value, pt);
                 } else {
