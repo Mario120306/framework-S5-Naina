@@ -58,6 +58,16 @@ public class FrontServlet extends HttpServlet {
         for (Map.Entry<Class<?>, Method> entry : mapping.getClassMethodMap().entrySet()) {
             Class<?> cls = entry.getKey();
             Method method = entry.getValue();
+            // Vérifie la présence de l'annotation WebRoute
+            itu.sprint.annotation.WebRoute webRoute = method.getAnnotation(itu.sprint.annotation.WebRoute.class);
+            String expectedMethod = "GET";
+            if (webRoute != null) {
+                expectedMethod = webRoute.method().toUpperCase();
+            }
+            String actualMethod = req.getMethod().toUpperCase();
+            if (!expectedMethod.equals(actualMethod)) {
+                continue; // Ignore si le type de requête ne correspond pas
+            }
             try {
                 System.out.println("[Sprint][DEBUG] Appel du contrôleur : " + cls.getName() + "#" + method.getName());
                 Object controllerInstance = cls.getDeclaredConstructor().newInstance();
