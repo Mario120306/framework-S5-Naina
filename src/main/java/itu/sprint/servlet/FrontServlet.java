@@ -65,7 +65,7 @@ public class FrontServlet extends HttpServlet {
 
     private void handleDynamic(String url, UrlMapping mapping, HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL  blabla
+        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL 
         System.out.println("[Sprint][DEBUG] handleDynamic appelé pour URL : " + url);
         Map<String, String> pathParams = mapping.getPattern().extractParams(url);
         boolean errorOccured = true;
