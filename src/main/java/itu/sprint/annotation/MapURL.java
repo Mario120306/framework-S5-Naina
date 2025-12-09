@@ -5,5 +5,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface MapURL {
-    String url() default "";/** */
+    String url() default "";
+    String method() default "GET";
 }
