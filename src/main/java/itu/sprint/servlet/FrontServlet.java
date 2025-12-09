@@ -46,18 +46,42 @@ public class FrontServlet extends HttpServlet {
             return;
         }
 
-        // 3. Rien trouvé => 404
-        resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Aucun mapping pour l'URL: " + resourcePath);
+        // 3. Rien trouvé => 404 personnalisé
+        resp.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = resp.getWriter();
+        out.println("<html><head><title>404 Not Found</title><style>");
+        out.println("body { background:#f8f8f8; font-family:sans-serif; text-align:center; margin-top:10vh; }");
+        out.println(".error-box { display:inline-block; background:#fff; border:2px solid #e74c3c; padding:2em 3em; border-radius:10px; box-shadow:0 2px 8px #ccc; }");
+        out.println("h1 { color:#e74c3c; font-size:3em; margin-bottom:0.2em; }");
+        out.println("p { color:#333; font-size:1.2em; }");
+        out.println("</style></head><body>");
+        out.println("<div class='error-box'>");
+        out.println("<h1>404</h1>");
+        out.println("<p>Page non trouvée : <b>" + resourcePath + "</b></p>");
+        out.println("<p>Aucun mapping pour cette URL.</p>");
+        out.println("</div></body></html>");
+        out.close();
     }
 
     private void handleDynamic(String url, UrlMapping mapping, HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL  blabla
+        // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL 
         System.out.println("[Sprint][DEBUG] handleDynamic appelé pour URL : " + url);
         Map<String, String> pathParams = mapping.getPattern().extractParams(url);
+        boolean errorOccured = true;
         for (Map.Entry<Class<?>, Method> entry : mapping.getClassMethodMap().entrySet()) {
             Class<?> cls = entry.getKey();
             Method method = entry.getValue();
+            // Vérifier la méthode HTTP attendue via l'annotation MapURL
+            String expectedMethod = "GET";
+            if (method.isAnnotationPresent(itu.sprint.annotation.MapURL.class)) {
+                itu.sprint.annotation.MapURL mapUrl = method.getAnnotation(itu.sprint.annotation.MapURL.class);
+                expectedMethod = mapUrl.method();
+            }
+            // Comparer avec la méthode HTTP de la requête
+            if (!req.getMethod().equalsIgnoreCase(expectedMethod)) {
+                continue; // Ne pas invoquer si la méthode ne correspond pas
+            }
             try {
                 System.out.println("[Sprint][DEBUG] Appel du contrôleur : " + cls.getName() + "#" + method.getName());
                 Object controllerInstance = cls.getDeclaredConstructor().newInstance();
@@ -65,6 +89,7 @@ public class FrontServlet extends HttpServlet {
                 method.setAccessible(true);
                 Object returnValue = method.invoke(controllerInstance, args);
                 System.out.println("[Sprint][DEBUG] Retour du contrôleur : " + (returnValue != null ? returnValue.getClass().getName() : "null"));
+                errorOccured = false;
                 // Si retour ModelView, on gère l'affichage JSP
                 if (returnValue != null && returnValue.getClass().getSimpleName().equals("ModelView")) {
                     // On récupère les attributs et la vue
@@ -86,7 +111,8 @@ public class FrontServlet extends HttpServlet {
                             return;
                         }
                     } catch (Exception e) {
-                        throw new RuntimeException("Erreur ModelView: " + e.getMessage(), e);
+                        showErrorPage(resp, "Erreur ModelView", e);
+                        return;
                     }
                 } else {
                     // Sinon, on affiche le retour en texte brut
@@ -97,14 +123,40 @@ public class FrontServlet extends HttpServlet {
                     if (returnValue != null) {
                         out.println("   <= Retour: " + returnValue);
                     }
+                    out.close();
                 }
             } catch (ReflectiveOperationException | IllegalArgumentException e) {
-                resp.setContentType("text/plain; charset=UTF-8");
-                PrintWriter out;
-                try { out = resp.getWriter(); } catch (IOException ex) { throw new RuntimeException(ex); }
-                out.println("   !! Erreur invocation: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                showErrorPage(resp, "Erreur invocation du contrôleur", e);
+                return;
             }
         }
+        // Si aucune méthode n'a été invoquée (mauvaise méthode HTTP ou autre)
+        if (errorOccured) {
+            showErrorPage(resp, "Erreur : Méthode HTTP non supportée ou problème d'invocation", null);
+        }
+    }
+
+    /**
+     * Affiche une page d'erreur HTML/CSS personnalisée 
+     */
+    private void showErrorPage(HttpServletResponse resp, String message, Exception e) throws IOException {
+        resp.setContentType("text/html; charset=UTF-8");
+        PrintWriter out = resp.getWriter();
+        out.println("<html><head><title>Erreur</title><style>");
+        out.println("body { background:#f8f8f8; font-family:sans-serif; text-align:center; margin-top:10vh; }");
+        out.println(".error-box { display:inline-block; background:#fff; border:2px solid #e67e22; padding:2em 3em; border-radius:10px; box-shadow:0 2px 8px #ccc; }");
+        out.println("h1 { color:#e67e22; font-size:2.5em; margin-bottom:0.2em; }");
+        out.println("p { color:#333; font-size:1.2em; }");
+        out.println(".details { color:#888; font-size:0.95em; margin-top:1em; }");
+        out.println("</style></head><body>");
+        out.println("<div class='error-box'>");
+        out.println("<h1>Erreur</h1>");
+        out.println("<p>" + message + "</p>");
+        if (e != null) {
+            out.println("<div class='details'>" + e.getClass().getSimpleName() + " : " + e.getMessage() + "</div>");
+        }
+        out.println("</div></body></html>");
+        out.close();
     }
 
     /**
