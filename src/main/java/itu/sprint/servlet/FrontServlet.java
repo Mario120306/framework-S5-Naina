@@ -137,7 +137,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Affiche une page d'erreur HTML/CSS personnalisée
+     * Affiche une page d'erreur HTML/CSS personnalisée blabla
      */
     private void showErrorPage(HttpServletResponse resp, String message, Exception e) throws IOException {
         resp.setContentType("text/html; charset=UTF-8");
