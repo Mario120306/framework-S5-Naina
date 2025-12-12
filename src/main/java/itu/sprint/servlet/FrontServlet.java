@@ -192,8 +192,22 @@ public class FrontServlet extends HttpServlet {
                 } else {
                     args[i] = null;
                 }
+            } else if (Map.class.isAssignableFrom(pt)) {
+                // Si le type est Map<String, Object>, on crée une map avec tous les paramètres
+                Map<String, Object> paramMap = new java.util.HashMap<>();
+                java.util.Map<String, String[]> requestParams = req.getParameterMap();
+                for (Map.Entry<String, String[]> entry : requestParams.entrySet()) {
+                    String key = entry.getKey();
+                    String[] values = entry.getValue();
+                    if (values.length == 1) {
+                        paramMap.put(key, values[0]);
+                    } else {
+                        paramMap.put(key, values);
+                    }
+                }
+                args[i] = paramMap;
             } else {
-                // Type non géré : laisser null (IllegalArgumentException possible si primitif)
+                // Type non géré : laisser null
                 args[i] = null;
             }
         }
