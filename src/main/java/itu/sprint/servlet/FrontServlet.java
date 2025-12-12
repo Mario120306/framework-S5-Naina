@@ -206,6 +206,26 @@ public class FrontServlet extends HttpServlet {
                     }
                 }
                 args[i] = paramMap;
+            } else if (pt.isArray()) {
+                // Gestion des tableaux d'objets : Person[]
+                Class<?> componentType = pt.getComponentType();
+                args[i] = buildArrayFromParams(req, componentType, param.getName());
+            } else if (java.util.List.class.isAssignableFrom(pt)) {
+                // Gestion des listes d'objets : List<Person>
+                try {
+                    java.lang.reflect.ParameterizedType parameterizedType = (java.lang.reflect.ParameterizedType) param.getParameterizedType();
+                    Class<?> listType = (Class<?>) parameterizedType.getActualTypeArguments()[0];
+                    Object[] array = buildArrayFromParams(req, listType, param.getName());
+                    java.util.List<Object> list = new java.util.ArrayList<>();
+                    if (array != null) {
+                        for (Object obj : array) {
+                            list.add(obj);
+                        }
+                    }
+                    args[i] = list;
+                } catch (Exception e) {
+                    args[i] = null;
+                }
             } else {
                 // Mapping automatique d'objet (entité) depuis les paramètres de la requête
                 try {
@@ -228,6 +248,61 @@ public class FrontServlet extends HttpServlet {
             }
         }
         return args;
+    }
+
+    /**
+     * Construit un tableau d'objets depuis les paramètres de la requête.
+     * Format attendu : paramName[0].field, paramName[1].field, etc.
+     */
+    private Object[] buildArrayFromParams(HttpServletRequest req, Class<?> elementType, String paramName) {
+        try {
+            java.util.Map<Integer, Object> indexedObjects = new java.util.HashMap<>();
+            java.util.Map<String, String[]> allParams = req.getParameterMap();
+            
+            // Parcourir tous les paramètres pour trouver ceux qui correspondent au pattern
+            for (Map.Entry<String, String[]> entry : allParams.entrySet()) {
+                String key = entry.getKey();
+                // Format attendu : paramName[index].fieldName
+                if (key.startsWith(paramName + "[")) {
+                    int bracketEnd = key.indexOf(']');
+                    if (bracketEnd > 0) {
+                        try {
+                            int index = Integer.parseInt(key.substring(paramName.length() + 1, bracketEnd));
+                            String fieldName = key.substring(bracketEnd + 2); // +2 pour sauter ].
+                            
+                            // Créer l'objet s'il n'existe pas encore
+                            if (!indexedObjects.containsKey(index)) {
+                                indexedObjects.put(index, elementType.getDeclaredConstructor().newInstance());
+                            }
+                            
+                            // Affecter la valeur au champ
+                            Object obj = indexedObjects.get(index);
+                            java.lang.reflect.Field field = elementType.getDeclaredField(fieldName);
+                            field.setAccessible(true);
+                            String value = entry.getValue()[0];
+                            Object convertedValue = convertValue(value, field.getType());
+                            field.set(obj, convertedValue);
+                        } catch (Exception e) {
+                            // Ignorer les erreurs de parsing
+                        }
+                    }
+                }
+            }
+            
+            // Convertir la map en tableau
+            if (indexedObjects.isEmpty()) {
+                return null;
+            }
+            
+            int maxIndex = indexedObjects.keySet().stream().max(Integer::compare).orElse(0);
+            Object[] result = (Object[]) java.lang.reflect.Array.newInstance(elementType, maxIndex + 1);
+            for (Map.Entry<Integer, Object> entry : indexedObjects.entrySet()) {
+                result[entry.getKey()] = entry.getValue();
+            }
+            return result;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private Object convertValue(String value, Class<?> type) {
@@ -280,7 +355,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Vérifie si la ressource est un fichier statique.
+     * Vérifie si la ressource est un fichier statique de.
      */
     private boolean isStaticResource(String resourcePath) {
         try {
