@@ -259,20 +259,33 @@ public class FrontServlet extends HttpServlet {
             java.util.Map<Integer, Object> indexedObjects = new java.util.HashMap<>();
             java.util.Map<String, String[]> allParams = req.getParameterMap();
             
-            // Parcourir tous les paramètres pour trouver ceux qui correspondent au pattern
+            System.out.println("[Sprint][DEBUG] buildArrayFromParams - paramName: " + paramName);
+            System.out.println("[Sprint][DEBUG] buildArrayFromParams - elementType: " + elementType.getName());
+            
+            // Parcourir tous les paramètres pour trouver ceux qui correspondent au pattern [index].fieldName
             for (Map.Entry<String, String[]> entry : allParams.entrySet()) {
                 String key = entry.getKey();
-                // Format attendu : paramName[index].fieldName
-                if (key.startsWith(paramName + "[")) {
-                    int bracketEnd = key.indexOf(']');
-                    if (bracketEnd > 0) {
-                        try {
-                            int index = Integer.parseInt(key.substring(paramName.length() + 1, bracketEnd));
-                            String fieldName = key.substring(bracketEnd + 2); // +2 pour sauter ].
+                System.out.println("[Sprint][DEBUG] Param key: " + key);
+                
+                // Format flexible : chercher n'importe quel pattern [index].fieldName ou paramName[index].fieldName
+                int bracketStart = key.indexOf('[');
+                int bracketEnd = key.indexOf(']');
+                
+                if (bracketStart >= 0 && bracketEnd > bracketStart) {
+                    try {
+                        int index = Integer.parseInt(key.substring(bracketStart + 1, bracketEnd));
+                        int dotPos = key.indexOf('.', bracketEnd);
+                        
+                        if (dotPos > 0 && dotPos < key.length() - 1) {
+                            String fieldName = key.substring(dotPos + 1);
+                            
+                            System.out.println("[Sprint][DEBUG] Found index=" + index + ", field=" + fieldName);
                             
                             // Créer l'objet s'il n'existe pas encore
                             if (!indexedObjects.containsKey(index)) {
-                                indexedObjects.put(index, elementType.getDeclaredConstructor().newInstance());
+                                Object newObj = elementType.getDeclaredConstructor().newInstance();
+                                indexedObjects.put(index, newObj);
+                                System.out.println("[Sprint][DEBUG] Created new object at index " + index);
                             }
                             
                             // Affecter la valeur au champ
@@ -282,15 +295,17 @@ public class FrontServlet extends HttpServlet {
                             String value = entry.getValue()[0];
                             Object convertedValue = convertValue(value, field.getType());
                             field.set(obj, convertedValue);
-                        } catch (Exception e) {
-                            // Ignorer les erreurs de parsing
+                            System.out.println("[Sprint][DEBUG] Set " + fieldName + " = " + value);
                         }
+                    } catch (Exception e) {
+                        System.out.println("[Sprint][DEBUG] Error parsing key: " + key + " - " + e.getMessage());
                     }
                 }
             }
             
             // Convertir la map en tableau
             if (indexedObjects.isEmpty()) {
+                System.out.println("[Sprint][DEBUG] No objects found, returning null");
                 return null;
             }
             
@@ -299,8 +314,11 @@ public class FrontServlet extends HttpServlet {
             for (Map.Entry<Integer, Object> entry : indexedObjects.entrySet()) {
                 result[entry.getKey()] = entry.getValue();
             }
+            System.out.println("[Sprint][DEBUG] Returning array with " + result.length + " elements");
             return result;
         } catch (Exception e) {
+            System.out.println("[Sprint][DEBUG] buildArrayFromParams exception: " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
@@ -345,7 +363,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Extrait le chemin de la ressource depuis la requête.
+     * Extrait le chemin de la ressource depuis la requête.-
      */
     private String extractResourcePath(HttpServletRequest req) {
         String requestURI = req.getRequestURI();
