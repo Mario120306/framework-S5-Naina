@@ -72,7 +72,7 @@ public class FrontServlet extends HttpServlet {
         for (Map.Entry<Class<?>, Method> entry : mapping.getClassMethodMap().entrySet()) {
             Class<?> cls = entry.getKey();
             Method method = entry.getValue();
-            // Vérifier la méthode HTTP attendue via l'annotation MapURL
+            // Vérifier la méthode HTTP attendue via l'annotation MapURL /** blabla*/
             String expectedMethod = "GET";
             if (method.isAnnotationPresent(itu.sprint.annotation.MapURL.class)) {
                 itu.sprint.annotation.MapURL mapUrl = method.getAnnotation(itu.sprint.annotation.MapURL.class);
