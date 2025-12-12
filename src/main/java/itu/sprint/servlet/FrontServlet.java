@@ -207,8 +207,24 @@ public class FrontServlet extends HttpServlet {
                 }
                 args[i] = paramMap;
             } else {
-                // Type non géré : laisser null /* */
-                args[i] = null;
+                // Mapping automatique d'objet (entité) depuis les paramètres de la requête
+                try {
+                    Object instance = pt.getDeclaredConstructor().newInstance();
+                    java.lang.reflect.Field[] fields = pt.getDeclaredFields();
+                    for (java.lang.reflect.Field field : fields) {
+                        String fieldName = field.getName();
+                        String paramValue = req.getParameter(fieldName);
+                        if (paramValue != null && !paramValue.isEmpty()) {
+                            field.setAccessible(true);
+                            Object convertedValue = convertValue(paramValue, field.getType());
+                            field.set(instance, convertedValue);
+                        }
+                    }
+                    args[i] = instance;
+                } catch (Exception e) {
+                    // Si le mapping échoue, laisser null
+                    args[i] = null;
+                }
             }
         }
         return args;
