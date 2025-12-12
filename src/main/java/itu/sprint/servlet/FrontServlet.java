@@ -345,7 +345,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Extrait le chemin de la ressource depuis la requête.
+     * Extrait le chemin de la ressource depuis la requête.-
      */
     private String extractResourcePath(HttpServletRequest req) {
         String requestURI = req.getRequestURI();
