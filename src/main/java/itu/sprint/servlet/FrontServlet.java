@@ -207,7 +207,7 @@ public class FrontServlet extends HttpServlet {
                 }
                 args[i] = paramMap;
             } else {
-                // Type non géré : laisser null
+                // Type non géré : laisser null /* */
                 args[i] = null;
             }
         }
