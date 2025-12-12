@@ -355,7 +355,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Vérifie si la ressource est un fichier statique de.
+     * Vérifie si la ressource est un fichier statique 
      */
     private boolean isStaticResource(String resourcePath) {
         try {
