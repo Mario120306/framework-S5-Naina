@@ -12,6 +12,8 @@ import java.util.Map;
 import itu.sprint.ControllerScanner;
 import itu.sprint.annotation.PathVariable;
 import itu.sprint.annotation.RequestParam;
+import itu.sprint.annotation.RestAPI;
+import itu.sprint.util.JSONConverter;
 import itu.sprint.util.UrlMapping;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -90,6 +92,23 @@ public class FrontServlet extends HttpServlet {
                 Object returnValue = method.invoke(controllerInstance, args);
                 System.out.println("[Sprint][DEBUG] Retour du contrôleur : " + (returnValue != null ? returnValue.getClass().getName() : "null"));
                 errorOccured = false;
+                
+                // Si la méthode a l'annotation @RestAPI, retourner du JSON
+                if (method.isAnnotationPresent(RestAPI.class)) {
+                    resp.setContentType("application/json; charset=UTF-8");
+                    PrintWriter out = resp.getWriter();
+                    try {
+                        String json = JSONConverter.toJSON(returnValue);
+                        out.print(json);
+                        System.out.println("[Sprint][DEBUG] Réponse JSON : " + json);
+                    } catch (Exception e) {
+                        showErrorPage(resp, "Erreur lors de la conversion JSON", e);
+                        return;
+                    }
+                    out.close();
+                    return;
+                }
+                
                 // Si retour ModelView, on gère l'affichage JSP
                 if (returnValue != null && returnValue.getClass().getSimpleName().equals("ModelView")) {
                     // On récupère les attributs et la vue
@@ -373,7 +392,7 @@ public class FrontServlet extends HttpServlet {
     }
 
     /**
-     * Vérifie si la ressource est un fichier statique de.
+     * Vérifie si la ressource est un fichier statique 
      */
     private boolean isStaticResource(String resourcePath) {
         try {
