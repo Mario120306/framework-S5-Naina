@@ -13,19 +13,28 @@ import itu.sprint.ControllerScanner;
 import itu.sprint.annotation.PathVariable;
 import itu.sprint.annotation.RequestParam;
 import itu.sprint.annotation.RestAPI;
+import itu.sprint.annotation.UploadFile;
+import itu.sprint.util.FileUpload;
 import itu.sprint.util.JSONConverter;
 import itu.sprint.util.UrlMapping;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 
 /**
  * Servlet frontal qui gère toutes les requêtes et délègue aux contrôleurs appropriés.
  */
 @WebServlet(name = "FrontServlet", urlPatterns = "/")
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2,  // 2MB
+    maxFileSize = 1024 * 1024 * 10,       // 10MB
+    maxRequestSize = 1024 * 1024 * 50     // 50MB
+)
 public class FrontServlet extends HttpServlet {
 
     private static final String DEFAULT_SERVLET_NAME = "default";
@@ -69,6 +78,8 @@ public class FrontServlet extends HttpServlet {
             throws IOException {
         // On suppose qu'il n'y a qu'un seul contrôleur/méthode par URL 
         System.out.println("[Sprint][DEBUG] handleDynamic appelé pour URL : " + url);
+        System.out.println("[Sprint][DEBUG] Méthode HTTP de la requête : " + req.getMethod());
+        System.out.println("[Sprint][DEBUG] Content-Type : " + req.getContentType());
         Map<String, String> pathParams = mapping.getPattern().extractParams(url);
         boolean errorOccured = true;
         for (Map.Entry<Class<?>, Method> entry : mapping.getClassMethodMap().entrySet()) {
@@ -80,14 +91,21 @@ public class FrontServlet extends HttpServlet {
                 itu.sprint.annotation.MapURL mapUrl = method.getAnnotation(itu.sprint.annotation.MapURL.class);
                 expectedMethod = mapUrl.method();
             }
+            System.out.println("[Sprint][DEBUG] Méthode attendue : " + expectedMethod + ", reçue : " + req.getMethod());
             // Comparer avec la méthode HTTP de la requête
             if (!req.getMethod().equalsIgnoreCase(expectedMethod)) {
+                System.out.println("[Sprint][DEBUG] Méthode HTTP ne correspond pas, passage au suivant");
                 continue; // Ne pas invoquer si la méthode ne correspond pas
             }
             try {
                 System.out.println("[Sprint][DEBUG] Appel du contrôleur : " + cls.getName() + "#" + method.getName());
+                System.out.println("[Sprint][DEBUG] Nombre de paramètres de la méthode : " + method.getParameterCount());
                 Object controllerInstance = cls.getDeclaredConstructor().newInstance();
                 Object[] args = buildArgs(method, req, resp, pathParams);
+                System.out.println("[Sprint][DEBUG] Arguments construits : " + args.length);
+                for (int i = 0; i < args.length; i++) {
+                    System.out.println("[Sprint][DEBUG]   arg[" + i + "] = " + (args[i] != null ? args[i].getClass().getName() : "null"));
+                }
                 method.setAccessible(true);
                 Object returnValue = method.invoke(controllerInstance, args);
                 System.out.println("[Sprint][DEBUG] Retour du contrôleur : " + (returnValue != null ? returnValue.getClass().getName() : "null"));
@@ -145,7 +163,20 @@ public class FrontServlet extends HttpServlet {
                     out.close();
                 }
             } catch (ReflectiveOperationException | IllegalArgumentException e) {
+                System.err.println("[Sprint][ERROR] Exception lors de l'invocation: " + e.getClass().getName());
+                System.err.println("[Sprint][ERROR] Message: " + e.getMessage());
+                e.printStackTrace();
+                if (e.getCause() != null) {
+                    System.err.println("[Sprint][ERROR] Cause: " + e.getCause().getMessage());
+                    e.getCause().printStackTrace();
+                }
                 showErrorPage(resp, "Erreur invocation du contrôleur", e);
+                return;
+            } catch (Exception e) {
+                System.err.println("[Sprint][ERROR] Exception inattendue: " + e.getClass().getName());
+                System.err.println("[Sprint][ERROR] Message: " + e.getMessage());
+                e.printStackTrace();
+                showErrorPage(resp, "Erreur inattendue", e);
                 return;
             }
         }
@@ -209,6 +240,26 @@ public class FrontServlet extends HttpServlet {
                 if (value != null) {
                     args[i] = convertValue(value, pt);
                 } else {
+                    args[i] = null;
+                }
+            } else if (param.isAnnotationPresent(UploadFile.class)) {
+                // Gestion de l'upload de fichiers
+                UploadFile uf = param.getAnnotation(UploadFile.class);
+                String fileName = uf.value();
+                try {
+                    Part filePart = req.getPart(fileName);
+                    if (filePart != null) {
+                        if (pt == Part.class) {
+                            args[i] = filePart;
+                        } else if (pt == FileUpload.class) {
+                            args[i] = new FileUpload(filePart);
+                        } else {
+                            args[i] = null;
+                        }
+                    } else {
+                        args[i] = null;
+                    }
+                } catch (Exception e) {
                     args[i] = null;
                 }
             } else if (Map.class.isAssignableFrom(pt)) {
