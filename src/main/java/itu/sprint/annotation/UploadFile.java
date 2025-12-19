@@ -14,7 +14,7 @@ import java.lang.annotation.ElementType;
 @Target(ElementType.PARAMETER)
 public @interface UploadFile {
     /**
-     * Nom du champ de formulaire contenant le fichier
+     * Nom du champ de formulaire contenant le fichier a telecharger
      */
     String value();
 }
